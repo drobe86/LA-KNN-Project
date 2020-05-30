@@ -1,0 +1,59 @@
+import numpy as np
+from numpy import linalg as LA
+from scipy import linalg as LAScipy
+from pandas import DataFrame
+from sklearn import preprocessing
+import pandas as pd
+
+Iris_df = pd.read_csv(r"C:\Users\drobey\Documents\Coding\Machine Learning - Materials\K579ML\Week 1\iris.csv")
+iris_numbers = Iris_df.iloc[:,0:4]
+iris_numbers.head()
+
+
+x = iris_numbers.values #returns a numpy array
+min_max_scaler = preprocessing.MinMaxScaler()
+x_scaled = min_max_scaler.fit_transform(x)
+iris_df_num_scaled=pd.DataFrame(x_scaled, columns=iris_numbers.columns)
+iris_df_num_scaled.head()
+
+
+Iris_norm = iris_df_num_scaled.join(Iris_df[["class"]])
+#Iris_norm = shuffle(Iris_norm)
+from sklearn.model_selection import train_test_split
+train, test = train_test_split(Iris_norm, test_size = .2)
+
+training_points = train.iloc[:,0:4]
+training_labels = train.iloc[:,4]
+test_points = test.iloc[:,0:4]
+test_labels = test.iloc[:,4]
+
+def distance(flower_1,flower_2,dataframe):
+    squared_dif = 0
+    for column in dataframe.columns:
+        squared_dif += (flower_1[column] - flower_2[column]) **2
+        final_distance = squared_dif **.5
+    return final_distance
+
+def classify(unknown,dataset_numbers,dataset_w_text,k):
+    distances= []
+    classification = {}
+    class_count = {}
+    counter = 1
+    for i in dataset_w_text.index.values.tolist():
+        flower = dataset_w_text.loc[i,"class"]
+        distance_to_point = distance(dataset_numbers.loc[i],unknown,dataset_numbers)
+        distances.append([distance_to_point,flower])
+        if flower in classification:
+            classification[flower] += distance_to_point
+        else:
+            classification[flower] = distance_to_point
+        if flower in class_count:
+            class_count[flower] += 1
+        else:
+            class_count[flower] = 1
+    distances.sort()
+    neighbors = distances[0:k]
+    df = DataFrame(neighbors,columns=['Difference','Flower'])
+    x = df.groupby(['Flower'])['Difference'].mean()
+    y = df.groupby(['Flower']).size()
+    return neighbors, class_count, classification, x, y
